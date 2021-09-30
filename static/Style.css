@@ -1,0 +1,12 @@
+#all {
+    margin:auto;
+}
+
+video {
+ display: flex;  flex-direction: column;  justify-content: center;
+}
+
+h1 {
+    text-align: center;
+    margin: 5%;
+}
