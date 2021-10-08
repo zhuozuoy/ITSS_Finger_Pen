@@ -24,6 +24,13 @@ class Gesture(object):
         self.video.set(cv2.CAP_PROP_FRAME_WIDTH, 1920);
         self.video.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080);
 
+        # variable
+        self.gesture_str = 'None'       # Gesture recognition result
+        self.rectangle_on = 0           # control rectangle show up
+        self.rectangle_off = 0          # control rectangle show off
+        self.clear = 0                  # clear all writing
+        self.center = []                # handwriting center
+        self.eraser = []                # eraser center
     def __del__(self):
         self.video.release()
 
@@ -117,6 +124,38 @@ class Gesture(object):
                 gesture_str = "L"
         return gesture_str
 
+    def rectangle_logic(self,frame):
+        threshold = 25
+        if self.gesture_str == 'Four':
+            self.rectangle_on += 1
+
+        if self.rectangle_on > threshold:
+            self.rectangle_show(frame)
+
+        if self.gesture_str == 'Five':
+            self.rectangle_off += 1
+
+        if self.rectangle_off > threshold:
+            self.rectangle_on = 0
+            self.rectangle_off = 0
+
+    def rectangle_show(self,frame):
+        list = [[40, 150, 200, 500, (0, 255, 255)],
+                [290, 150, 200, 500, (0, 255, 255)],
+                [540, 150, 200, 500, (0, 255, 255)],
+                [790, 150, 200, 500, (0, 255, 255)],
+                [1040, 150, 200, 500, (0, 255, 255)]]
+        for x, y, w, h, color in list:
+            cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
+
+    def writing_show(self,frame):
+        for x,y in self.center:
+            if (150<y<650) and ((40<x<240) or (290<x<490) or (540<x<740) or (790<x<990) or (1040<x<1240)):
+                color = (255,0,0)
+            else:
+                color = (255,255,0)
+            cv2.circle(frame, (x, y), 10, color, -1)
+
     def get_frame(self):
         success, image = self.video.read()
 
@@ -128,7 +167,6 @@ class Gesture(object):
         # We are using Motion JPEG, but OpenCV defaults to capture raw images,
         # so we must encode it into JPEG in order to correctly display the
         # video stream.
-        gesture_str = 'Nothing detected'
 
         if results.multi_hand_landmarks:
             for hand_landmarks in results.multi_hand_landmarks:
@@ -140,20 +178,57 @@ class Gesture(object):
                     hand_local.append((x, y))
                 if hand_local:
                     # Index fingertip
-                    print(hand_local[8])
-                    angle_list = self.hand_angle(hand_local)
-                    gesture_str = self.h_gesture(angle_list)
-                    cv2.putText(frame,gesture_str,(100,100),0,3,(0,0,255),3)
-                    # cv2.putText(frame, gesture_str)
 
-        list = [[40,150,200,500,(0,255,255)],
-                [290,150,200,500,(0,255,255)],
-                [540,150,200,500,(0,255,255)],
-                [790,150,200,500,(0,255,255)],
-                [1040,150,200,500,(0,255,255)]]
-        for x,y,w,h,color in list:
-            cv2.rectangle(frame,(x, y),(x + w, y + h),color,2)
+                    #轨迹绘制
+                    # print(hand_local[8][0])
+                    center_x = math.floor(hand_local[8][0])
+                    center_y = math.floor(hand_local[8][1])
+
+                    eraser_x = math.floor((hand_local[8][0]+hand_local[12][0])/2)
+                    eraser_y = math.floor((hand_local[8][1]+hand_local[12][1])/2)
+
+
+                    angle_list = self.hand_angle(hand_local)
+                    self.gesture_str = self.h_gesture(angle_list)
+                    cv2.putText(frame,self.gesture_str,(100,100),0,3,(0,0,255),3)
+
+                    if self.gesture_str == 'One':
+                        self.clear = 0
+                        self.center.append((center_x,center_y))
+
+                    if self.gesture_str == 'Two':
+                        self.eraser.append((eraser_x,eraser_y))
+                        # cv2.circle(frame, (eraser_x, eraser_y), 10, (0, 0, 255), -1)
+                        length = 20
+                        cv2.rectangle(frame, (eraser_x-length, eraser_y-length), (eraser_x+length, eraser_y+length), (0,0,255), -1)
+
+                        for i in range(eraser_x-length,eraser_x+length):
+                            for j in range(eraser_y-length,eraser_y+length):
+                                if (i,j) in self.center:
+                                    self.center.remove((i,j))
+
+                    # ret_list = list(set(self.center) ^ set(self.eraser))
+                    # # ret_list = [item for item in self.center if item not in self.eraser]
+                    # self.center = ret_list
+
+
+
+        # show handwriting
+        self.writing_show(frame)
+
+        # show 5 rectangle
+        self.rectangle_logic(frame)
+
+        # Clear all handwriting
+        if self.gesture_str == 'Three':
+            self.clear += 1
+        if self.clear > 80:
+            memory = self.center
+            self.center = []
+            self.eraser = []
+            self.clear = 0
+
 
         ret, jpeg = cv2.imencode('.jpg', frame)
 
-        return jpeg.tobytes(), gesture_str
+        return jpeg.tobytes(), self.gesture_str
