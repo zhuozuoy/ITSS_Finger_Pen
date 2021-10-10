@@ -2,11 +2,22 @@
     margin:auto;
 }
 
+#main {
+    align:center
+}
+
 video {
  display: flex;  flex-direction: column;  justify-content: center;
 }
 
 h1 {
     text-align: center;
-    margin: 5%;
+}
+
+h2 {
+    text-align:center;
+}
+
+p {
+    text-align:left;
 }
