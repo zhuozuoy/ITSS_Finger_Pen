@@ -8,7 +8,7 @@
 
 Gesture Category: <br>
     "One"   -- Draw / Write <br>
-    'Twp"   -- Eraser <br>
+    'Two"   -- Eraser <br>
     "Three" -- Save the Result and Clear <br>
     "Four"  -- Show Writing Region( 5 Rectangles ) <br>
     "Five"  -- Hide Writing Region <br>
