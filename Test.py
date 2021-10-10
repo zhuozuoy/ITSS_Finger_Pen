@@ -1,7 +1,8 @@
 import cv2
 import mediapipe as mp
 import math
-
+import numpy as np
+import inspect, re
 
 class Gesture(object):
     def __init__(self):
@@ -31,6 +32,12 @@ class Gesture(object):
         self.clear = 0                  # clear all writing
         self.center = []                # handwriting center
         self.eraser = []                # eraser center
+
+        self.trajectory1 = []            # trajectory recognition
+        self.trajectory2 = []
+        self.trajectory3 = []
+        self.trajectory4 = []
+        self.trajectory5 = []
     def __del__(self):
         self.video.release()
 
@@ -124,6 +131,18 @@ class Gesture(object):
                 gesture_str = "L"
         return gesture_str
 
+    def gesture_logic(self):
+        if self.gesture_str == 'One':
+            return 'One -- Writing'
+        elif self.gesture_str == 'Two':
+            return 'Two -- Eraser'
+        elif self.gesture_str == 'Three':
+            return 'Three -- Save'
+        elif self.gesture_str == 'Four':
+            return 'Four -- Show Rectangle'
+        elif self.gesture_str == 'Five':
+            return 'Five -- Hide Rectangle'
+
     def rectangle_logic(self,frame):
         threshold = 25
         if self.gesture_str == 'Four':
@@ -149,12 +168,48 @@ class Gesture(object):
             cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
 
     def writing_show(self,frame):
+        for i in range(len(self.center)):
+            if self.center[i]:
+                last = self.center[i]
+                break
         for x,y in self.center:
             if (150<y<650) and ((40<x<240) or (290<x<490) or (540<x<740) or (790<x<990) or (1040<x<1240)):
                 color = (255,0,0)
             else:
                 color = (255,255,0)
             cv2.circle(frame, (x, y), 10, color, -1)
+
+            # cv2.line(frame,(x,y),last,color,20)
+            # last = (x,y)
+
+    def Trajectory_save(self,trajectory):
+        addr_list = ['trajectory1','trajectory2','trajectory3','trajectory4','trajectory5']
+        i = 0
+        for traj in trajectory:
+            traj_addr = 'C:/Users/Ying/Downloads/' + addr_list[i] + '.txt'
+            with open(traj_addr, mode='w') as f:
+                for k, v in traj:
+                    dict_2_lst = []
+                    dict_2_lst.append("(" + str(k) + "," + str(v) + ")")
+                    f.write(','.join(dict_2_lst))
+                    f.write('\n')
+
+            recognition = np.zeros((500, 200, 3), np.uint8)
+            recognition.fill(255)
+
+            for x, y in traj:
+                cv2.circle(recognition, (x, y), 10, (255, 0, 0), -1)
+
+            recg_addr = 'C:/Users/Ying/Downloads/' + addr_list[i] + '.jpg'
+            cv2.imwrite(recg_addr, recognition)
+
+            i = i+1
+
+        self.trajectory1 = []
+        self.trajectory2 = []
+        self.trajectory3 = []
+        self.trajectory4 = []
+        self.trajectory5 = []
 
     def get_frame(self):
         success, image = self.video.read()
@@ -190,9 +245,11 @@ class Gesture(object):
 
                     angle_list = self.hand_angle(hand_local)
                     self.gesture_str = self.h_gesture(angle_list)
-                    cv2.putText(frame,self.gesture_str,(100,100),0,3,(0,0,255),3)
 
-                    if self.gesture_str == 'One':
+                    gesture_text = self.gesture_logic()
+                    cv2.putText(frame,gesture_text,(100,100),0,2,(0,0,255),3)
+
+                    if self.gesture_str == 'One' or self.gesture_str == "L":
                         self.clear = 0
                         self.center.append((center_x,center_y))
 
@@ -207,11 +264,6 @@ class Gesture(object):
                                 if (i,j) in self.center:
                                     self.center.remove((i,j))
 
-                    # ret_list = list(set(self.center) ^ set(self.eraser))
-                    # # ret_list = [item for item in self.center if item not in self.eraser]
-                    # self.center = ret_list
-
-
 
         # show handwriting
         self.writing_show(frame)
@@ -224,6 +276,28 @@ class Gesture(object):
             self.clear += 1
         if self.clear > 80:
             memory = self.center
+            for x, y in self.center:
+                y = y-150
+                if 0 < y < 500:
+                    if 40 < x < 240:
+                        x = x-40
+                        self.trajectory1.append((x, y))
+                    elif 290 < x < 490:
+                        x = x-290
+                        self.trajectory2.append((x, y))
+                    elif 540 < x < 740:
+                        x = x-540
+                        self.trajectory3.append((x, y))
+                    elif 790 < x < 990:
+                        x = x-790
+                        self.trajectory4.append((x, y))
+                    elif 1040 < x < 1240:
+                        x = x-1040
+                        self.trajectory5.append((x, y))
+
+            trajectory = [self.trajectory1,self.trajectory2,self.trajectory3,self.trajectory4,self.trajectory5]
+            self.Trajectory_save(trajectory)
+
             self.center = []
             self.eraser = []
             self.clear = 0
