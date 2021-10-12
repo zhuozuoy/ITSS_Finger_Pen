@@ -10,7 +10,7 @@ Gesture Category: <br>
     "One"   -- Draw / Write <br>
     'Two"   -- Eraser <br>
     "Three" -- Save the Result and Clear <br>
-    "Four"  -- Show Writing Region( 5 Rectangles ) <br>
+    "Four"  -- Show Writing Region( 4 Rectangles ) <br>
     "Five"  -- Hide Writing Region <br>
             <br>
 Notes: <br>
