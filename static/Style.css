@@ -3,7 +3,7 @@
 }
 
 #main {
-    align:center
+    text-align:center;
 }
 
 video {
@@ -14,10 +14,32 @@ h1 {
     text-align: center;
 }
 
-h2 {
-    text-align:center;
+
+test{
+    width:600px;
+    height:600px;
+    font-size:x-large;
+    text-align:center
 }
 
-p {
-    text-align:left;
+h2 {
+    font-size:x-large;
+}
+
+
+ul[title='One'] {
+    width:600px;
+    margin:0 auto;
+    text-align: start;
+    font-size:x-large;
+    line-height:42px;
+}
+
+ul[title='Two'] {
+    width:1080px;
+    height:200px;
+    margin:0 auto;
+    text-align: start;
+    font-size:x-large;
+    line-height:42px;
 }
