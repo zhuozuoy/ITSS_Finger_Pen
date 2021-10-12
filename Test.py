@@ -21,9 +21,9 @@ class Gesture(object):
         # If you decide to use video.mp4, you must have this file in the folder
         # as the main.py.
         # self.video = cv2.VideoCapture('video.mp4')
-
-        self.video.set(cv2.CAP_PROP_FRAME_WIDTH, 1920);
-        self.video.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080);
+        self.video.set(cv2.CAP_PROP_FPS, 60)
+        self.video.set(cv2.CAP_PROP_FRAME_WIDTH, 1440)
+        self.video.set(cv2.CAP_PROP_FRAME_HEIGHT, 800)
 
         # variable
         self.gesture_str = 'None'       # Gesture recognition result
@@ -32,6 +32,9 @@ class Gesture(object):
         self.clear = 0                  # clear all writing
         self.center = []                # handwriting center
         self.eraser = []                # eraser center
+
+        self.breakpoint = []
+        self.breakdot = (1,1)
 
         self.trajectory1 = []            # trajectory recognition
         self.trajectory2 = []
@@ -159,12 +162,20 @@ class Gesture(object):
             self.rectangle_off = 0
 
     def rectangle_show(self,frame):
-        list = [[40, 150, 200, 500, (0, 255, 255)],
-                [290, 150, 200, 500, (0, 255, 255)],
-                [540, 150, 200, 500, (0, 255, 255)],
-                [790, 150, 200, 500, (0, 255, 255)],
-                [1040, 150, 200, 500, (0, 255, 255)]]
-        for x, y, w, h, color in list:
+        # list = [[40, 150, 200, 500, (0, 255, 255)],
+        #         [290, 150, 200, 500, (0, 255, 255)],
+        #         [540, 150, 200, 500, (0, 255, 255)],
+        #         [790, 150, 200, 500, (0, 255, 255)],
+        #         [1040, 150, 200, 500, (0, 255, 255)]]
+        # for x, y, w, h, color in list:
+        #     cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
+
+        y = 150
+        w = 250
+        h = 500
+        color = (0,255,255)
+        x = [40,340,640,940]
+        for x in x:
             cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
 
     def writing_show(self,frame):
@@ -173,17 +184,64 @@ class Gesture(object):
                 last = self.center[i]
                 break
         for x,y in self.center:
-            if (150<y<650) and ((40<x<240) or (290<x<490) or (540<x<740) or (790<x<990) or (1040<x<1240)):
+            # if (150<y<650) and ((40<x<240) or (290<x<490) or (540<x<740) or (790<x<990) or (1040<x<1240)):
+            if (150 < y < 650) and ((40 < x < 290) or (340 < x < 590) or (640 < x < 890) or (940 < x < 1190)):
                 color = (255,0,0)
             else:
                 color = (255,255,0)
+
+            # if (x,y) in self.breakpoint:
+            #     color = (0,0,255)
+
             cv2.circle(frame, (x, y), 10, color, -1)
 
-            # cv2.line(frame,(x,y),last,color,20)
-            # last = (x,y)
+
+            # if last not in self.breakpoint:
+            #     cv2.line(frame,(x,y),last,color,20)
+            #     last = (x,y)
+            # else:
+            #     last = (x,y)
+    def Trajectory_get(self):
+        for x, y in self.center:
+            y = y - 150
+            if 0 < y < 500:
+                # if 40 < x < 240:
+                #     x = x - 40
+                #     self.trajectory1.append((x, y))
+                # elif 290 < x < 490:
+                #     x = x - 290
+                #     self.trajectory2.append((x, y))
+                # elif 540 < x < 740:
+                #     x = x - 540
+                #     self.trajectory3.append((x, y))
+                # elif 790 < x < 990:
+                #     x = x - 790
+                #     self.trajectory4.append((x, y))
+                # elif 1040 < x < 1240:
+                #     x = x - 1040
+                #     self.trajectory5.append((x, y))
+                if 40 < x < 290:
+                    x = x - 40
+                    self.trajectory1.append((x, y))
+                elif 340 < x < 590:
+                    x = x - 340
+                    self.trajectory2.append((x, y))
+                elif 640 < x < 890:
+                    x = x - 640
+                    self.trajectory3.append((x, y))
+                elif 940 < x < 1190:
+                    x = x - 940
+                    self.trajectory4.append((x, y))
+
+
+        # trajectory = [self.trajectory1, self.trajectory2, self.trajectory3, self.trajectory4, self.trajectory5]
+        trajectory = [self.trajectory1, self.trajectory2, self.trajectory3, self.trajectory4]
+        self.Trajectory_save(trajectory)
+
 
     def Trajectory_save(self,trajectory):
-        addr_list = ['trajectory1','trajectory2','trajectory3','trajectory4','trajectory5']
+        # addr_list = ['trajectory1','trajectory2','trajectory3','trajectory4','trajectory5']
+        addr_list = ['trajectory1','trajectory2','trajectory3','trajectory4']
         i = 0
         for traj in trajectory:
             traj_addr = 'C:/Users/Ying/Downloads/' + addr_list[i] + '.txt'
@@ -194,7 +252,8 @@ class Gesture(object):
                     f.write(','.join(dict_2_lst))
                     f.write('\n')
 
-            recognition = np.zeros((500, 200, 3), np.uint8)
+            # recognition = np.zeros((500, 200, 3), np.uint8)
+            recognition = np.zeros((500, 250, 3), np.uint8)
             recognition.fill(255)
 
             for x, y in traj:
@@ -249,13 +308,19 @@ class Gesture(object):
                     gesture_text = self.gesture_logic()
                     cv2.putText(frame,gesture_text,(100,100),0,2,(0,0,255),3)
 
+
                     if self.gesture_str == 'One' or self.gesture_str == "L":
                         self.clear = 0
                         self.center.append((center_x,center_y))
+                    #     self.breakdot = (center_x,center_y)
+                    # else:
+                    #     if self.breakdot not in self.breakpoint:
+                    #         self.breakpoint.append(self.breakdot)
+
+
 
                     if self.gesture_str == 'Two':
                         self.eraser.append((eraser_x,eraser_y))
-                        # cv2.circle(frame, (eraser_x, eraser_y), 10, (0, 0, 255), -1)
                         length = 20
                         cv2.rectangle(frame, (eraser_x-length, eraser_y-length), (eraser_x+length, eraser_y+length), (0,0,255), -1)
 
@@ -276,27 +341,8 @@ class Gesture(object):
             self.clear += 1
         if self.clear > 80:
             memory = self.center
-            for x, y in self.center:
-                y = y-150
-                if 0 < y < 500:
-                    if 40 < x < 240:
-                        x = x-40
-                        self.trajectory1.append((x, y))
-                    elif 290 < x < 490:
-                        x = x-290
-                        self.trajectory2.append((x, y))
-                    elif 540 < x < 740:
-                        x = x-540
-                        self.trajectory3.append((x, y))
-                    elif 790 < x < 990:
-                        x = x-790
-                        self.trajectory4.append((x, y))
-                    elif 1040 < x < 1240:
-                        x = x-1040
-                        self.trajectory5.append((x, y))
 
-            trajectory = [self.trajectory1,self.trajectory2,self.trajectory3,self.trajectory4,self.trajectory5]
-            self.Trajectory_save(trajectory)
+            self.Trajectory_get()
 
             self.center = []
             self.eraser = []
