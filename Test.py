@@ -30,6 +30,7 @@ class Gesture(object):
         self.rectangle_on = 0           # control rectangle show up
         self.rectangle_off = 0          # control rectangle show off
         self.clear = 0                  # clear all writing
+        self.save = 0                   # save all writing
         self.center = []                # handwriting center
         self.eraser = []                # eraser center
 
@@ -140,11 +141,13 @@ class Gesture(object):
         elif self.gesture_str == 'Two':
             return 'Two -- Eraser'
         elif self.gesture_str == 'Three':
-            return 'Three -- Save'
+            return 'Three -- Clear'
         elif self.gesture_str == 'Four':
             return 'Four -- Show Rectangle'
         elif self.gesture_str == 'Five':
             return 'Five -- Hide Rectangle'
+        elif self.gesture_str == 'Thumb up':
+            return 'Thumb up -- Save'
 
     def rectangle_logic(self,frame):
         threshold = 25
@@ -342,12 +345,17 @@ class Gesture(object):
         if self.clear > 80:
             memory = self.center
 
-            self.Trajectory_get()
-
             self.center = []
             self.eraser = []
             self.clear = 0
 
+        if self.gesture_str == 'Thumb up':
+            self.save += 1
+        if self.save > 80:
+            self.Trajectory_get()
+            self.center = []
+            self.eraser = []
+            self.save = 0
 
         ret, jpeg = cv2.imencode('.jpg', frame)
 
