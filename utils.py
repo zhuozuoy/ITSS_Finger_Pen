@@ -131,12 +131,13 @@ def plot_confuse(model, x_val, y_val, label):
     plot_confusion_matrix(conf_mat, normalize=False,target_names=label,title='Confusion Matrix')
 
 
-def plot_pic(x,y):
-  plt.scatter(x, y)
-  plt.show()
+def plot_pic(feature):
+    x, y = zip(*feature)
+    plt.scatter(x, y)
+    plt.show()
 
 
-def get_google_freq_data():
+def get_bigram_freq_data():
 
     data1 = pd.read_csv('/content/gdrive/MyDrive/FingerPen/googlebooks-eng-all-1gram-20090715-0.csv', sep='\t',
                         header=None)
@@ -238,13 +239,55 @@ def simulate_correction_p():
     return softmax_smooth_t
 
 
+def get_test_data(test_path='./testData'):
+    g = os.walk(test_path)
+    result = []
+    for path,dir_list,file_list in g:
+        for f in file_list:
+            if not 'txt' in f:
+                continue
+            print(f)
+            sample = []
+            f = open(os.path.join(path,f))
+            for line in f.readlines():
+                if '\n' not in line:
+                    continue
+                sample.append([eval(i) for i in line[1:-2].split(',')][::-1])
+            result.append(sample)
+    return result
 
 
+def get_word_freq():
+    data1 = pd.read_csv('../correction_data/googlebooks-eng-all-1gram-20090715-0.csv', sep='\t',
+                        header=None)
+    data1.columns = ['name', 'year', 'count', 'word_match', 'book_match']
+    data1 = data1.groupby('name').agg('sum')
+
+    data2 = pd.read_csv('../correction_data/googlebooks-eng-all-1gram-20090715-1.csv', sep='\t',
+                        header=None)
+    data2.columns = ['name', 'year', 'count', 'word_match', 'book_match']
+    data2 = data2.groupby('name').agg('sum')
+
+    data3 = pd.read_csv('../correction_data/googlebooks-eng-all-1gram-20090715-2.csv', sep='\t',
+                        header=None)
+    data3.columns = ['name', 'year', 'count', 'word_match', 'book_match']
+    data3 = data3.groupby('name').agg('sum')
+
+    data = pd.concat([data1, data2, data3])
+    data.reset_index(inplace=True)
+    pk.dump(data, open('./word_freq.pkl', 'wb'))
+    return data[['name','count']]
 
 
+def get_word_freq_P():
+    word_freq = pk.load(open('./word_freq.pkl', 'rb'))
+    word_freq_P = word_freq['count'].sum()
+    word_freq['probability'] = word_freq['count'] / word_freq_P
+    word = word_freq['name'].tolist()
+    word_probability = word_freq['probability'].tolist()
+    word2p = dict(zip(word,word_probability))
+    pk.dump(word2p, open('./word2p.pkl', 'wb'))
 
-
-# if __name__ == '__main__':
-#     labels_cate = [str(i) for i in range(10)] + [chr(i) for i in range(65, 91)] + [chr(i) for i in range(97, 123)]
-#     print(len(labels_cate))
-#     plot_confuse(model, val_set_fea, val_set_label, labels_cate)
+if __name__ == '__main__':
+    # get_test_data()
+    get_word_freq_P()

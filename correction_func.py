@@ -29,16 +29,70 @@ def straghit_forward(trainsition_p, emission_p, labels_cate, lambda_a=0.05):
     return seq
 
 
-if __name__ == '__main__':
+def correction_result(p_emission,lambda_a=10,lambda_b=1):
     labels_cate = [str(i) for i in range(10)] + [chr(i) for i in range(65, 91)] + [chr(i) for i in range(97, 123)]
     bichargram_freq = pk.load(open('./bichargram_freq.pkl','rb'))
-    softmax_smooth_t = simulate_correction_p()
-    p_x = get_trainsition_p(bichargram_freq).values
+    p_trainsition = get_trainsition_p(bichargram_freq).values
 
-    p_current,seq = viterbi(p_x,softmax_smooth_t,labels_cate)
+    p_current,seq = viterbi(p_trainsition,p_emission,labels_cate,lambda_a=lambda_a,lambda_b=lambda_b)
     result = dict(zip(seq, p_current))
     result = sorted(result.items(), key=lambda kv: (kv[1], kv[0]), reverse=True)
-    print(result)
+    return result
 
-    # result = straghit_forward(p_x,softmax_smooth_t,labels_cate)
+
+def word_correction(best_word,p_emission):
+
+    word2p = pk.load(open('./word2p.pkl', 'rb'))
+    labels_cate = [str(i) for i in range(10)] + [chr(i) for i in range(65, 91)] + [chr(i) for i in range(97, 123)]
+    label2id = dict(zip(labels_cate, [i for i in range(len(labels_cate))]))
+    candidates = []
+    for i,e in enumerate(best_word):
+        for j,ee in enumerate(best_word):
+            if j<i:
+                continue
+            elif i==j:
+                for ci in labels_cate:
+                    temp = best_word[:i]+ci+best_word[i+1:]
+                    if temp in word2p:
+                        candidates.append(temp)
+            else:
+                for ci in labels_cate:
+                    for cj in labels_cate:
+                        temp = best_word[:i]+ci+best_word[i+1:j]+cj+best_word[j+1:]
+                        if temp in word2p:
+                            candidates.append(temp)
+    candidates2p = {}
+    if best_word not in word2p:
+        p = 3.0293079247958117e-10/2
+        for i,c in enumerate(best_word):
+            p *= p_emission[i][label2id[c]]
+        candidates2p[best_word] = p
+    else:
+        p = word2p[best_word]
+        for i,c in enumerate(best_word):
+            p *= p_emission[i][label2id[c]]
+        candidates2p[best_word] = p
+
+    for cdd in candidates:
+        p = word2p[cdd]
+        for i,c in enumerate(cdd):
+            p *= p_emission[i][label2id[c]]
+        candidates2p[cdd] = p
+
+    result = sorted(candidates2p.items(), key=lambda kv: (kv[1], kv[0]), reverse=True)
+    return result
+
+if __name__ == '__main__':
+    # p_emission = simulate_correction_p()
+    # result = correction_result(p_emission)
     # print(result)
+    # best_word = result[0][0]
+    # word_correction = word_correction(best_word,p_emission)
+    # print(word_correction)
+    word2p = pk.load(open('./word2p.pkl', 'rb'))
+    print(word2p['words'])
+    # result = sorted(word2p.items(), key=lambda kv: (kv[1], kv[0]), reverse=False)
+    # print(result[0])
+
+
+
