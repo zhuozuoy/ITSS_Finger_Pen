@@ -6,26 +6,32 @@
 </head>
 
 <body>
+<div id ="main">
     <h1>Finger Pen</h1>
     <div align=center>
         <img src="{{ url_for('video_feed') }}">
     </div>
 
-    <div id ="main">
-        <p>
-    Gesture Category: <br>
-    "One"   -- Draw / Write <br>
-    'Twp"   -- Eraser <br>
-    "Three" -- Save the Result and Clear <br>
-    "Four"  -- Show Writing Region( 5 Rectangles ) <br>
-    "Five"  -- Hide Writing Region <br>
-            <br>
-    Notes: <br>
-    Make sure your whole hand are in the camera to get better gesture recognition result. <br>
-    Only the words write in the region (Deep Blue Color) will be recognized. <br>
-    Hold your gesture "Three" for a while to make sure you really want to clear your writing. <br>
-        </p>
+    <div class="test">
+        <h2><b>Gesture Category:</b></h2>
+        <ul title="One">
+            <li>"One"   -- Draw / Write</li>
+            <li>"Two"   -- Eraser</li>
+            <li>"Three" -- Save the Result and Clear </li>
+            <li>"Four"  -- Show Writing Region( 4 Rectangles ) </li>
+            <li>"Five"  -- Hide Writing Region </li>
+        </ul>
+        <br>
+        <h2><b>Notes: </b></h2>
+        <ul title="Two">
+            <li>Make sure your whole hand are in the camera to get better gesture recognition result. </li>
+            <li>Only the words write in the region (Deep Blue Color) will be recognized. </li>
+            <li>Hold your gesture "Three" for a while to make sure you really want to clear your writing. </li>
+        </ul>
     </div>
+
+</div>
+
 
 </body>
 
