@@ -314,6 +314,7 @@ class Gesture(object):
 
                     if self.gesture_str == 'One' or self.gesture_str == "L":
                         self.clear = 0
+                        self.save = 0
                         self.center.append((center_x,center_y))
                     #     self.breakdot = (center_x,center_y)
                     # else:
@@ -351,7 +352,7 @@ class Gesture(object):
 
         if self.gesture_str == 'Thumb up':
             self.save += 1
-        if self.save > 80:
+        if self.save > 100:
             self.Trajectory_get()
             self.center = []
             self.eraser = []
