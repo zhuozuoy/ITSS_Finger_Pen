@@ -12,14 +12,20 @@ video {
 
 h1 {
     text-align: center;
+    font-size: 60px
 }
 
-
-test{
+text{
     width:600px;
     height:600px;
     font-size:x-large;
     text-align:center
+}
+
+.intro{
+    font-size:30px;
+    text-align: center;
+    font-weight: bold;
 }
 
 h2 {
@@ -37,7 +43,7 @@ ul[title='One'] {
 
 ul[title='Two'] {
     width:1080px;
-    height:200px;
+    height:250px;
     margin:0 auto;
     text-align: start;
     font-size:x-large;

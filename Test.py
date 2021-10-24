@@ -3,6 +3,10 @@ import mediapipe as mp
 import math
 import numpy as np
 import inspect, re
+from trajectoryDataset import trajectoryData
+from traj_model import simpleLSTM
+from correction_func import *
+from tensorflow.keras.models import Model
 
 class Gesture(object):
     def __init__(self):
@@ -34,14 +38,19 @@ class Gesture(object):
         self.center = []                # handwriting center
         self.eraser = []                # eraser center
 
-        self.breakpoint = []
-        self.breakdot = (1,1)
+        self.end = 0                    #end writing
+        self.rec = 0                    #show recognition
 
-        self.trajectory1 = []            # trajectory recognition
+        # self.breakpoint = []
+        # self.breakdot = (1,1)
+
+        self.trajectory = []            # trajectory recognition
+        self.trajectory1 = []
         self.trajectory2 = []
         self.trajectory3 = []
         self.trajectory4 = []
         self.trajectory5 = []
+
     def __del__(self):
         self.video.release()
 
@@ -137,32 +146,41 @@ class Gesture(object):
 
     def gesture_logic(self):
         if self.gesture_str == 'One':
-            return 'One -- Writing'
+            return 'One -- Write'
         elif self.gesture_str == 'Two':
             return 'Two -- Eraser'
         elif self.gesture_str == 'Three':
             return 'Three -- Clear'
         elif self.gesture_str == 'Four':
-            return 'Four -- Show Rectangle'
+            return 'Four -- Start Writing'
         elif self.gesture_str == 'Five':
-            return 'Five -- Hide Rectangle'
+            return 'Five -- End Writing'
         elif self.gesture_str == 'Thumb up':
             return 'Thumb up -- Save'
 
     def rectangle_logic(self,frame):
-        threshold = 25
         if self.gesture_str == 'Four':
             self.rectangle_on += 1
 
-        if self.rectangle_on > threshold:
+        if self.rectangle_on > 40:
+            self.end = 1
             self.rectangle_show(frame)
+            self.rec = 0
 
         if self.gesture_str == 'Five':
             self.rectangle_off += 1
 
-        if self.rectangle_off > threshold:
+        if self.rectangle_off > 80:
             self.rectangle_on = 0
             self.rectangle_off = 0
+            self.end = 0
+            self.rec = 1
+            self.predict_traj(self.trajectory)
+
+
+        if self.rec == 1:
+            # recognition result
+            self.recognition(frame)
 
     def rectangle_show(self,frame):
         # list = [[40, 150, 200, 500, (0, 255, 255)],
@@ -175,7 +193,7 @@ class Gesture(object):
 
         y = 150
         w = 250
-        h = 500
+        h = 400
         color = (0,255,255)
         x = [40,340,640,940]
         for x in x:
@@ -188,7 +206,7 @@ class Gesture(object):
                 break
         for x,y in self.center:
             # if (150<y<650) and ((40<x<240) or (290<x<490) or (540<x<740) or (790<x<990) or (1040<x<1240)):
-            if (150 < y < 650) and ((40 < x < 290) or (340 < x < 590) or (640 < x < 890) or (940 < x < 1190)):
+            if (150 < y < 550) and ((40 < x < 290) or (340 < x < 590) or (640 < x < 890) or (940 < x < 1190)):
                 color = (255,0,0)
             else:
                 color = (255,255,0)
@@ -198,16 +216,16 @@ class Gesture(object):
 
             cv2.circle(frame, (x, y), 10, color, -1)
 
-
             # if last not in self.breakpoint:
             #     cv2.line(frame,(x,y),last,color,20)
             #     last = (x,y)
             # else:
             #     last = (x,y)
+
     def Trajectory_get(self):
         for x, y in self.center:
             y = y - 150
-            if 0 < y < 500:
+            if 0 < y < 400:
                 # if 40 < x < 240:
                 #     x = x - 40
                 #     self.trajectory1.append((x, y))
@@ -236,42 +254,57 @@ class Gesture(object):
                     x = x - 940
                     self.trajectory4.append((x, y))
 
-
         # trajectory = [self.trajectory1, self.trajectory2, self.trajectory3, self.trajectory4, self.trajectory5]
         trajectory = [self.trajectory1, self.trajectory2, self.trajectory3, self.trajectory4]
-        self.Trajectory_save(trajectory)
 
-
-    def Trajectory_save(self,trajectory):
-        # addr_list = ['trajectory1','trajectory2','trajectory3','trajectory4','trajectory5']
-        addr_list = ['trajectory1','trajectory2','trajectory3','trajectory4']
-        i = 0
         for traj in trajectory:
-            traj_addr = 'C:/Users/Ying/Downloads/' + addr_list[i] + '.txt'
-            with open(traj_addr, mode='w') as f:
-                for k, v in traj:
-                    dict_2_lst = []
-                    dict_2_lst.append("(" + str(k) + "," + str(v) + ")")
-                    f.write(','.join(dict_2_lst))
-                    f.write('\n')
-
-            # recognition = np.zeros((500, 200, 3), np.uint8)
-            recognition = np.zeros((500, 250, 3), np.uint8)
-            recognition.fill(255)
-
-            for x, y in traj:
-                cv2.circle(recognition, (x, y), 10, (255, 0, 0), -1)
-
-            recg_addr = 'C:/Users/Ying/Downloads/' + addr_list[i] + '.jpg'
-            cv2.imwrite(recg_addr, recognition)
-
-            i = i+1
+            if len(traj) != 0:
+                self.trajectory.append(traj)
 
         self.trajectory1 = []
         self.trajectory2 = []
         self.trajectory3 = []
         self.trajectory4 = []
-        self.trajectory5 = []
+        # self.trajectory5 = []
+
+        self.trajDataset =  trajectoryData(digit=False)
+        model_path = './traj_model_checkpoints'
+
+        self.trajModel = simpleLSTM(62, input_shape=(self.trajDataset.len_95,2))
+        self.trajModel.load_weights(os.path.join(model_path, 'model_diff.h5'))
+
+
+        self.Trajectory_save(self.trajectory)
+
+    def Trajectory_save(self,trajectory):
+        # addr_list = ['trajectory1','trajectory2','trajectory3','trajectory4','trajectory5']
+        # addr_list = ['trajectory1','trajectory2','trajectory3','trajectory4']
+        # i = 0
+        # for traj in trajectory:
+        #     traj_addr = 'C:/Users/Ying/Downloads/' + addr_list[i] + '.txt'
+        #     with open(traj_addr, mode='w') as f:
+        #         for k, v in traj:
+        #             dict_2_lst = []
+        #             dict_2_lst.append("(" + str(k) + "," + str(v) + ")")
+        #             f.write(','.join(dict_2_lst))
+        #             f.write('\n')
+        #
+        #     # recognition = np.zeros((500, 200, 3), np.uint8)
+        #     recognition = np.zeros((500, 250, 3), np.uint8)
+        #     recognition.fill(255)
+        #
+        #     for x, y in traj:
+        #         cv2.circle(recognition, (x, y), 10, (255, 0, 0), -1)
+        #
+        #     recg_addr = 'C:/Users/Ying/Downloads/' + addr_list[i] + '.jpg'
+        #     cv2.imwrite(recg_addr, recognition)
+        #
+        #     i = i+1
+        print(len(self.trajectory))
+        np.save("trajectory.npy", self.trajectory)
+
+    def recognition(self,frame):
+        cv2.putText(frame,'Here is the recognition result',(100,650),0,2,(0,255,0),3)
 
     def get_frame(self):
         success, image = self.video.read()
@@ -309,29 +342,34 @@ class Gesture(object):
                     self.gesture_str = self.h_gesture(angle_list)
 
                     gesture_text = self.gesture_logic()
-                    cv2.putText(frame,gesture_text,(100,100),0,2,(0,0,255),3)
+
+                    if self.end != 0:
+                        cv2.putText(frame,gesture_text,(100,100),0,2,(0,0,255),3)
+
+                        if self.gesture_str == 'One' or self.gesture_str == "L":
+                            self.clear = 0
+                            self.save = 0
+                            self.center.append((center_x,center_y))
+                        #     self.breakdot = (center_x,center_y)
+                        # else:
+                        #     if self.breakdot not in self.breakpoint:
+                        #         self.breakpoint.append(self.breakdot)
 
 
-                    if self.gesture_str == 'One' or self.gesture_str == "L":
-                        self.clear = 0
-                        self.save = 0
-                        self.center.append((center_x,center_y))
-                    #     self.breakdot = (center_x,center_y)
-                    # else:
-                    #     if self.breakdot not in self.breakpoint:
-                    #         self.breakpoint.append(self.breakdot)
 
+                        if self.gesture_str == 'Two':
+                            self.eraser.append((eraser_x,eraser_y))
+                            length = 20
+                            cv2.rectangle(frame, (eraser_x-length, eraser_y-length), (eraser_x+length, eraser_y+length), (0,0,255), -1)
 
+                            for i in range(eraser_x-length,eraser_x+length):
+                                for j in range(eraser_y-length,eraser_y+length):
+                                    if (i,j) in self.center:
+                                        self.center.remove((i,j))
 
-                    if self.gesture_str == 'Two':
-                        self.eraser.append((eraser_x,eraser_y))
-                        length = 20
-                        cv2.rectangle(frame, (eraser_x-length, eraser_y-length), (eraser_x+length, eraser_y+length), (0,0,255), -1)
-
-                        for i in range(eraser_x-length,eraser_x+length):
-                            for j in range(eraser_y-length,eraser_y+length):
-                                if (i,j) in self.center:
-                                    self.center.remove((i,j))
+                    else:
+                        warning_text = 'Use Gesture 4 to start writing'
+                        cv2.putText(frame, warning_text, (100, 100), 0, 2, (0, 0, 255), 3)
 
 
         # show handwriting
@@ -352,12 +390,47 @@ class Gesture(object):
 
         if self.gesture_str == 'Thumb up':
             self.save += 1
-        if self.save > 100:
+        if self.save > 80:
             self.Trajectory_get()
             self.center = []
             self.eraser = []
             self.save = 0
 
+
         ret, jpeg = cv2.imencode('.jpg', frame)
 
         return jpeg.tobytes(), self.gesture_str
+
+
+    def predict_traj(self,traj_list):
+
+        traj_list = [[list(e)[::-1] for e in f] for f in traj_list]
+        print(traj_list)
+        feature = [self.trajDataset.preprocess(i, standardization=True) for i in traj_list]
+        feature = np.array([self.trajDataset.moving_ave(i, window_size=5) for i in feature])
+        feature = np.array(feature)
+
+        dense_layer_model = Model(inputs=self.trajModel.input,outputs=self.trajModel.get_layer('Dense_output').output)
+
+        predictions = dense_layer_model.predict(feature)
+        predictions = predictions + abs(np.min(predictions, axis=1, keepdims=True))
+        print(predictions)
+        predictions = predictions / np.sum(predictions, axis=1, keepdims=True)
+        pred = predictions.argmax(axis=-1)
+
+        labels_cate = [str(i) for i in range(10)] + [chr(i) for i in range(65, 91)] + [chr(i) for i in range(97, 123)]
+        label2id = dict(zip(labels_cate, [i for i in range(len(labels_cate))]))
+        id2label = dict(zip([i for i in range(len(labels_cate))], labels_cate))
+
+        print([id2label[i] for i in pred])
+        print([i[j] for i, j in zip(predictions, predictions.argmax(axis=-1))])
+
+        true = [label2id[i] for i in ['a', 'i', 'r']]
+        print(true)
+        print([i[j] for i, j in zip(predictions, true)])
+
+        result = correction_result(predictions, lambda_a=20)
+        print(result)
+        best_word = result[0][0]
+        word_correction_result = word_correction(best_word, predictions)
+        print(word_correction_result)

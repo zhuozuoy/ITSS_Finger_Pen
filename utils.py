@@ -290,4 +290,6 @@ def get_word_freq_P():
 
 if __name__ == '__main__':
     # get_test_data()
-    get_word_freq_P()
+    # get_word_freq_P()
+    t = (0,1)
+    print((list(t)))
