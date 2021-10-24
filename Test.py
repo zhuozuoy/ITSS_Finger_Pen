@@ -31,8 +31,8 @@ class Gesture(object):
 
         # variable
         self.gesture_str = 'None'       # Gesture recognition result
-        self.rectangle_on = 0           # control rectangle show up
-        self.rectangle_off = 0          # control rectangle show off
+        self.rectangle_on = 0           # control rectangle show up if > 40 show rectangle
+        self.rectangle_off = 0          # control rectangle show off if > 80 hide rectangle
         self.clear = 0                  # clear all writing
         self.save = 0                   # save all writing
         self.center = []                # handwriting center
@@ -42,7 +42,7 @@ class Gesture(object):
         self.rec = 0  # start recognition
         self.text = 0  # show recognition result
 
-        self.mode = 0
+        self.mode = 0                   # mode choose. 0 writing 1 select from corrected options
         self.predict = ''
         self.fst_rst = ''
         self.scd_rst = ''
@@ -181,6 +181,8 @@ class Gesture(object):
             self.rec = 1
             self.text = 0
             self.mode = 0
+            self.final = ''
+
 
         if self.gesture_str == 'Five':
             self.rectangle_off += 1
@@ -192,9 +194,13 @@ class Gesture(object):
 
             if self.rec == 1:
                 # recognition result
+                if len(self.trajectory) == 0:
+                    print('Do not have any trajectory to predict')
+                    return
                 self.predict, self.fst_rst, self.scd_rst = self.predict_traj(self.trajectory)
                 self.text = 1
                 self.rec = 0
+                self.trajectory = []
 
         if self.text == 1:
             self.mode = 1
@@ -332,6 +338,8 @@ class Gesture(object):
                 self.final = self.scd_rst[1][0]
             if self.gesture_str == 'Three':
                 self.final = self.scd_rst[2][0]
+            if self.gesture_str == 'Thumb up':
+                self.final = self.predict
 
             final = 'Final result:  ' + self.final
             cv2.putText(frame, final, (100, 700), 0, 2, (0, 255, 0), 3)
@@ -421,7 +429,7 @@ class Gesture(object):
             self.eraser = []
             self.clear = 0
 
-        if self.gesture_str == 'Thumb up':
+        if self.mode ==0 and self.gesture_str == 'Thumb up':
             self.save += 1
         if self.save > 80:
             self.Trajectory_get()
@@ -437,18 +445,7 @@ class Gesture(object):
 
     def predict_traj(self,traj_list):
 
-        traj_list = [[list(e)[::-1] for e in f] for f in traj_list]
-        print(traj_list)
-        feature = [self.trajDataset.preprocess(i, standardization=True) for i in traj_list]
-        feature = np.array([self.trajDataset.moving_ave(i, window_size=5) for i in feature])
-        feature = np.array(feature)
-
-        dense_layer_model = Model(inputs=self.trajModel.input,outputs=self.trajModel.get_layer('Dense_output').output)
-
-        predictions = dense_layer_model.predict(feature)
-        predictions = predictions + abs(np.min(predictions, axis=1, keepdims=True))
-        # print(predictions)
-        predictions = predictions / np.sum(predictions, axis=1, keepdims=True)
+        predictions = self.pred_trajatory(traj_list)
         pred = predictions.argmax(axis=-1)
 
         labels_cate = [str(i) for i in range(10)] + [chr(i) for i in range(65, 91)] + [chr(i) for i in range(97, 123)]
@@ -471,4 +468,19 @@ class Gesture(object):
 
         return predict_result,first_corr_result,second_corr_result
 
+
+    def pred_trajatory(self,traj_list):
+        traj_list = [[list(e)[::-1] for e in f] for f in traj_list]
+        print(traj_list)
+        feature = [self.trajDataset.preprocess(i, standardization=True) for i in traj_list]
+        feature = np.array([self.trajDataset.moving_ave(i, window_size=5) for i in feature])
+        feature = np.array(feature)
+
+        dense_layer_model = Model(inputs=self.trajModel.input,outputs=self.trajModel.get_layer('Dense_output').output)
+
+        predictions = dense_layer_model.predict(feature)
+        predictions = predictions + abs(np.min(predictions, axis=1, keepdims=True))
+
+        predictions = predictions / np.sum(predictions, axis=1, keepdims=True)
+        return predictions
     #2021-10-24 16:01
