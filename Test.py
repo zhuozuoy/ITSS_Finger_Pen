@@ -42,6 +42,12 @@ class Gesture(object):
         self.rec = 0  # start recognition
         self.text = 0  # show recognition result
 
+        self.mode = 0
+        self.predict = ''
+        self.fst_rst = ''
+        self.scd_rst = ''
+        self.final = ''
+
         # self.breakpoint = []
         # self.breakdot = (1,1)
 
@@ -174,6 +180,7 @@ class Gesture(object):
             self.rectangle_show(frame)
             self.rec = 1
             self.text = 0
+            self.mode = 0
 
         if self.gesture_str == 'Five':
             self.rectangle_off += 1
@@ -185,11 +192,12 @@ class Gesture(object):
 
             if self.rec == 1:
                 # recognition result
-                self.predict_traj(self.trajectory)
+                self.predict, self.fst_rst, self.scd_rst = self.predict_traj(self.trajectory)
                 self.text = 1
                 self.rec = 0
 
         if self.text == 1:
+            self.mode = 1
             self.recognition(frame)
 
     def rectangle_show(self,frame):
@@ -303,11 +311,33 @@ class Gesture(object):
         #     cv2.imwrite(recg_addr, recognition)
         #
         #     i = i+1
-        print(len(self.trajectory))
         np.save("trajectory.npy", self.trajectory)
 
     def recognition(self,frame):
-        cv2.putText(frame,'Here is the recognition result',(100,650),0,2,(0,255,0),3)
+        predict = 'Recognition result:  ' + self.predict
+        first = '1  ' + self.scd_rst[0][0]
+        second = '2  ' + self.scd_rst[1][0]
+        third = '3  ' + self.scd_rst[2][0]
+        cv2.putText(frame, predict, (100, 200), 0, 2, (0, 255, 0), 3)
+        if self.mode == 1:
+            cv2.putText(frame, predict, (100,200), 0, 2, (0, 255, 0), 3)
+            cv2.putText(frame, 'You may want to write:', (100, 300), 0, 2, (255, 255, 0), 3)
+            cv2.putText(frame, first, (100, 400), 0, 2, (255, 255, 0), 3)
+            cv2.putText(frame, second, (100, 500), 0, 2, (255, 255, 0), 3)
+            cv2.putText(frame, third, (100, 600), 0, 2, (255, 255, 0), 3)
+
+            if self.gesture_str == 'One':
+                self.final = self.scd_rst[0][0]
+            if self.gesture_str == 'Two':
+                self.final = self.scd_rst[1][0]
+            if self.gesture_str == 'Three':
+                self.final = self.scd_rst[2][0]
+
+            final = 'Final result:  ' + self.final
+            cv2.putText(frame, final, (100, 700), 0, 2, (0, 255, 0), 3)
+
+    def correction(self, frame, predict):
+        pass
 
     def get_frame(self):
         success, image = self.video.read()
@@ -349,7 +379,7 @@ class Gesture(object):
                     if self.end != 0:
                         cv2.putText(frame,gesture_text,(100,100),0,2,(0,0,255),3)
 
-                        if self.gesture_str == 'One' or self.gesture_str == "L":
+                        if (self.mode == 0) and self.gesture_str == 'One':
                             self.clear = 0
                             self.save = 0
                             self.center.append((center_x,center_y))
@@ -360,7 +390,7 @@ class Gesture(object):
 
 
 
-                        if self.gesture_str == 'Two':
+                        if self.mode == 0 and self.gesture_str == 'Two':
                             self.eraser.append((eraser_x,eraser_y))
                             length = 20
                             cv2.rectangle(frame, (eraser_x-length, eraser_y-length), (eraser_x+length, eraser_y+length), (0,0,255), -1)
@@ -382,7 +412,7 @@ class Gesture(object):
         self.rectangle_logic(frame)
 
         # Clear all handwriting
-        if self.gesture_str == 'Three':
+        if self.mode == 0 and self.gesture_str == 'Three':
             self.clear += 1
         if self.clear > 80:
             memory = self.center
@@ -440,3 +470,5 @@ class Gesture(object):
         print(second_corr_result)
 
         return predict_result,first_corr_result,second_corr_result
+
+    #2021-10-24 16:01
