@@ -52,6 +52,12 @@ class Gesture(object):
         self.trajectory4 = []
         self.trajectory5 = []
 
+        self.trajDataset =  trajectoryData(digit=False)
+        model_path = './traj_model_checkpoints'
+
+        self.trajModel = simpleLSTM(62, input_shape=(self.trajDataset.len_95,2))
+        self.trajModel.load_weights(os.path.join(model_path, 'model_diff.h5'))
+
     def __del__(self):
         self.video.release()
 
@@ -270,13 +276,6 @@ class Gesture(object):
         self.trajectory3 = []
         self.trajectory4 = []
         # self.trajectory5 = []
-
-        self.trajDataset =  trajectoryData(digit=False)
-        model_path = './traj_model_checkpoints'
-
-        self.trajModel = simpleLSTM(62, input_shape=(self.trajDataset.len_95,2))
-        self.trajModel.load_weights(os.path.join(model_path, 'model_diff.h5'))
-
 
         self.Trajectory_save(self.trajectory)
 
