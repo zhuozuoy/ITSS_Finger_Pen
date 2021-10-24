@@ -77,7 +77,7 @@ test_loader = DataLoader(test_dataset,
                          pin_memory=True)
 
 # Handwritten Image-based Classification
-cnn = SimpleCNN()
+cnn = SimpleCNN(NUM_CLASS)
 # print(cnn)
 
 if torch.cuda.is_available():
@@ -119,29 +119,31 @@ for epoch in range(TRAIN_EPOCH):
     ))
 
 # Testing
-    cnn.eval()
-    eval_loss = 0
-    eval_acc = 0
-    for i, data in enumerate(test_loader, 1):
-        img, label = data
-        if torch.cuda.is_available():
-            img = Variable(img).cuda()
-            label = Variable(label).cuda()
-        else:
-            img = Variable(img)
-            label = Variable(label)
+    with torch.no_grad():
+        cnn.eval()
+        eval_loss = 0
+        eval_acc = 0
+        for i, data in enumerate(test_loader, 1):
+            img, label = data
+            if torch.cuda.is_available():
+                img = Variable(img).cuda()
+                label = Variable(label).cuda()
+            else:
+                img = Variable(img)
+                label = Variable(label)
 
-        out = cnn(img)
-        loss = criterion(out, label)
-        eval_loss += loss.item() * label.size(0)
-        _, pred = torch.max(out, 1)
-        num_correct = (pred == label).sum()
-        accuracy = (pred == label).float().mean()
-        eval_acc += num_correct.item()
+            _, out = cnn(img)
+            features, _ = cnn(img)
+            loss = criterion(out, label)
+            eval_loss += loss.item() * label.size(0)
+            _, pred = torch.max(out, 1)
+            num_correct = (pred == label).sum()
+            accuracy = (pred == label).float().mean()
+            eval_acc += num_correct.item()
 
-    print('Test Loss: {:.6f}, Acc: {:.6f}'.format(eval_loss / (len(
-        test_dataset)), eval_acc / len(test_dataset)))
+        print('Test Loss: {:.6f}, Acc: {:.6f}'.format(eval_loss / (len(
+            test_dataset)), eval_acc / len(test_dataset)))
 
-    # Save the Trained Model
-    torch.save(cnn.state_dict(), f'./ckpt/CNN_model_{epoch}.pkl')
+        # Save the Trained Model
+        torch.save(cnn.state_dict(), f'./ckpt/CNN_model_{epoch}.pkl')
 

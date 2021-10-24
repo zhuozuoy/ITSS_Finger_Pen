@@ -2,12 +2,14 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="06bbd6ac-9688-4ec6-9463-b5313771c71d" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/other.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/image_based_recognition/img_model.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/image_based_recognition/img_train.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/image_based_recognition/ckpt/CNN_model_0.pkl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/image_based_recognition/img_predict.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/image_based_recognition/mappings/emnist-byclass-mapping.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/image_based_recognition/mappings/emnist-bymerge-mapping.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/ITSS_Finger_Pen.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/ITSS_Finger_Pen.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/image_based_recognition/img_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/image_based_recognition/img_model.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/image_based_recognition/img_train.py" beforeDir="false" afterPath="$PROJECT_DIR$/image_based_recognition/img_train.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -92,7 +94,7 @@
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
-  <component name="RunManager" selected="Python.traj_train">
+  <component name="RunManager" selected="Python.img_predict">
     <configuration default="true" type="PythonConfigurationType" factoryName="Python">
       <module name="ITSS_Finger_Pen" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -159,6 +161,25 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
+    <configuration name="img_predict" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="ITSS_Finger_Pen" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/image_based_recognition" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/image_based_recognition/img_predict.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="true" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <configuration name="traj_model" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="ITSS_Finger_Pen" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -205,6 +226,7 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.img_predict" />
         <item itemvalue="Python.traj_train" />
         <item itemvalue="Python.traj_model" />
         <item itemvalue="Python.app" />

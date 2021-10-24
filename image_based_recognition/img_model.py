@@ -44,9 +44,9 @@ class SimpleCNN(nn.Module):
 
     def forward(self, x):
         output = self.cnn_layers(x)
-        output = output.view(output.size(0), -1)
-        output = self.fc_layer(output)
-        return output
+        features = output.view(output.size(0), -1)
+        output = self.fc_layer(features)
+        return features, output
 
     # def init_weights(self, module):
     #     if isinstance(module, nn.Linear):
