@@ -418,7 +418,7 @@ class Gesture(object):
 
         predictions = dense_layer_model.predict(feature)
         predictions = predictions + abs(np.min(predictions, axis=1, keepdims=True))
-        print(predictions)
+        # print(predictions)
         predictions = predictions / np.sum(predictions, axis=1, keepdims=True)
         pred = predictions.argmax(axis=-1)
 
@@ -426,15 +426,18 @@ class Gesture(object):
         label2id = dict(zip(labels_cate, [i for i in range(len(labels_cate))]))
         id2label = dict(zip([i for i in range(len(labels_cate))], labels_cate))
 
-        print([id2label[i] for i in pred])
+        predict_result = ''.join([id2label[i] for i in pred])
+        print(predict_result)
         print([i[j] for i, j in zip(predictions, predictions.argmax(axis=-1))])
 
         true = [label2id[i] for i in ['a', 'i', 'r']]
         print(true)
         print([i[j] for i, j in zip(predictions, true)])
 
-        result = correction_result(predictions, lambda_a=20)
-        print(result)
-        best_word = result[0][0]
-        word_correction_result = word_correction(best_word, predictions)
-        print(word_correction_result)
+        first_corr_result = correction_result(predictions, lambda_a=20)
+        print(first_corr_result)
+        best_word = first_corr_result[0][0]
+        second_corr_result = word_correction(best_word, predictions)
+        print(second_corr_result)
+
+        return predict_result,first_corr_result,second_corr_result
