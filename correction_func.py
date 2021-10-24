@@ -40,7 +40,7 @@ def correction_result(p_emission,lambda_a=10,lambda_b=1):
     return result
 
 
-def word_correction(best_word,p_emission):
+def word_correction(best_word,p_emission,lambda_a=10,lambda_b=1):
 
     word2p = pk.load(open('./word2p.pkl', 'rb'))
     labels_cate = [str(i) for i in range(10)] + [chr(i) for i in range(65, 91)] + [chr(i) for i in range(97, 123)]
@@ -65,18 +65,18 @@ def word_correction(best_word,p_emission):
     if best_word not in word2p:
         p = 3.0293079247958117e-10/2
         for i,c in enumerate(best_word):
-            p *= p_emission[i][label2id[c]]
+            p *= p_emission[i][label2id[c]]**lambda_a
         candidates2p[best_word] = p
     else:
-        p = word2p[best_word]
+        p = word2p[best_word]**lambda_b
         for i,c in enumerate(best_word):
-            p *= p_emission[i][label2id[c]]
+            p *= p_emission[i][label2id[c]]**lambda_a
         candidates2p[best_word] = p
 
     for cdd in candidates:
-        p = word2p[cdd]
+        p = word2p[cdd]**lambda_b
         for i,c in enumerate(cdd):
-            p *= p_emission[i][label2id[c]]
+            p *= p_emission[i][label2id[c]]**lambda_a
         candidates2p[cdd] = p
 
     result = sorted(candidates2p.items(), key=lambda kv: (kv[1], kv[0]), reverse=True)
