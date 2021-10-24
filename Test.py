@@ -38,8 +38,9 @@ class Gesture(object):
         self.center = []                # handwriting center
         self.eraser = []                # eraser center
 
-        self.end = 0                    #end writing
-        self.rec = 0                    #show recognition
+        self.end = 0  # end writing
+        self.rec = 0  # start recognition
+        self.text = 0  # show recognition result
 
         # self.breakpoint = []
         # self.breakdot = (1,1)
@@ -165,7 +166,8 @@ class Gesture(object):
         if self.rectangle_on > 40:
             self.end = 1
             self.rectangle_show(frame)
-            self.rec = 0
+            self.rec = 1
+            self.text = 0
 
         if self.gesture_str == 'Five':
             self.rectangle_off += 1
@@ -174,12 +176,14 @@ class Gesture(object):
             self.rectangle_on = 0
             self.rectangle_off = 0
             self.end = 0
-            self.rec = 1
-            self.predict_traj(self.trajectory)
 
+            if self.rec == 1:
+                # recognition result
+                self.predict_traj(self.trajectory)
+                self.text = 1
+                self.rec = 0
 
-        if self.rec == 1:
-            # recognition result
+        if self.text == 1:
             self.recognition(frame)
 
     def rectangle_show(self,frame):
