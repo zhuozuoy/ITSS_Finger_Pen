@@ -2,7 +2,7 @@
 import os
 import math
 import torch
-from img_model import SimpleCNN
+from image_based_recognition.img_model import SimpleCNN
 import numpy as np
 from matplotlib import pyplot as plt
 from PIL import Image
@@ -69,7 +69,7 @@ def gen_bezuer(a, b, t):
 
 def load_mapping_file(file_pth):
     dict_tmp = {}
-    mapping_file = open(file_pth, 'r')
+    mapping_file = open(file_pth,'r')
 
     for line in mapping_file.readlines():
         line = line.strip()
@@ -102,9 +102,10 @@ if __name__ == '__main__':
             if os.path.splitext(files)[1] == '.txt':
                 trajList.append(files)
 
-        trajList = os.listdir(traj_dir)
+        # trajList = os.listdir(traj_dir)
         trajList.sort(key=lambda x: int(x.replace("trajectory","").split('.')[0]))
         for idx in range(0, len(trajList)):
+            # print(os.path.join(traj_dir, trajList[idx]))
             with open(os.path.join(traj_dir, trajList[idx])) as f:
                 x, y = [], []
                 for line in f.readlines():
@@ -135,6 +136,8 @@ if __name__ == '__main__':
             im_data = torch.from_numpy(im_data).float()
             im_data = im_data.view(1, 1, 28, 28)
             out = model(im_data)
+            print(out)
+            print(type(out))
             _, pred = torch.max(out, 1)
 
             # 62-dimensional features
