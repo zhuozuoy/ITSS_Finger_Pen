@@ -257,6 +257,10 @@ def get_test_data(test_path='./testData'):
     return result
 
 
+def max_min_normalization(v):
+    return (v - v.min(axis=-1, keepdims=True)) / (v.max(axis=-1, keepdims=True) - v.min(axis=-1, keepdims=True))
+
+
 def get_word_freq():
     data1 = pd.read_csv('../correction_data/googlebooks-eng-all-1gram-20090715-0.csv', sep='\t',
                         header=None)

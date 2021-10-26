@@ -7,6 +7,7 @@ from trajectoryDataset import trajectoryData
 from traj_model import simpleLSTM
 from correction_func import *
 from tensorflow.keras.models import Model
+from image_based_recognition.img_predict import *
 
 class Gesture(object):
     def __init__(self):
@@ -63,6 +64,10 @@ class Gesture(object):
 
         self.trajModel = simpleLSTM(62, input_shape=(self.trajDataset.len_95,2))
         self.trajModel.load_weights(os.path.join(model_path, 'model_diff.h5'))
+
+        ckpt = torch.load(f'./image_based_recognition/ckpt/CNN_model_0.pkl', map_location=torch.device('cuda'))
+        self.imageModel = SimpleCNN(62)
+        self.imageModel.load_state_dict(ckpt)
 
     def __del__(self):
         self.video.release()
@@ -197,7 +202,7 @@ class Gesture(object):
                 if len(self.trajectory) == 0:
                     print('Do not have any trajectory to predict')
                     return
-                self.predict, self.fst_rst, self.scd_rst = self.predict_traj(self.trajectory)
+                self.predict, self.fst_rst, self.scd_rst = self.predict_correct(self.trajectory)
                 self.text = 1
                 self.rec = 0
                 self.trajectory = []
@@ -443,9 +448,13 @@ class Gesture(object):
         return jpeg.tobytes(), self.gesture_str
 
 
-    def predict_traj(self,traj_list):
+    def predict_correct(self,traj_list,target_str='air',lambda_a=1,lambda_b=1):
 
-        predictions = self.pred_trajatory(traj_list)
+        traj_predictions = self.pred_trajatory(traj_list)
+        image_predictions = self.pred_image(traj_list)
+        image_predictions = np.reshape(image_predictions,(image_predictions.shape[0],image_predictions.shape[-1]))
+        image_predictions = max_min_normalization(image_predictions)
+        predictions = lambda_a*traj_predictions+lambda_b*image_predictions
         pred = predictions.argmax(axis=-1)
 
         labels_cate = [str(i) for i in range(10)] + [chr(i) for i in range(65, 91)] + [chr(i) for i in range(97, 123)]
@@ -456,7 +465,7 @@ class Gesture(object):
         print(predict_result)
         print([i[j] for i, j in zip(predictions, predictions.argmax(axis=-1))])
 
-        true = [label2id[i] for i in ['a', 'i', 'r']]
+        true = [label2id[i] for i in target_str]
         print(true)
         print([i[j] for i, j in zip(predictions, true)])
 
@@ -483,4 +492,53 @@ class Gesture(object):
 
         predictions = predictions / np.sum(predictions, axis=1, keepdims=True)
         return predictions
+
+
+    def pred_image(self,trajList):
+        with torch.no_grad():
+            self.imageModel.eval()
+            # load mapping txt
+            # dict_tmp = load_mapping_file('./mappings/emnist-byclass-mapping.txt')
+
+            # load the trajectory-based test sets and model file
+            # traj_dir = "../testData"
+            # trajList = []
+            # for files in os.listdir(traj_dir):
+            #     if os.path.splitext(files)[1] == '.txt':
+            #         trajList.append(files)
+            final_result = []
+            # trajList = os.listdir(traj_dir)
+            # trajList.sort(key=lambda x: int(x.replace("trajectory", "").split('.')[0]))
+            for idx in range(0, len(trajList)):
+                # print(os.path.join(traj_dir, trajList[idx]))
+                x, y= zip(*trajList[idx])
+                t = np.linspace(0.0, 1.0, 25)
+                plt.figure(figsize=(1, 1))
+                data = gen_bezuer(x, y, t)
+                ax = plt.gca()
+                ax.invert_yaxis()
+                plt.axis('off')
+                im = plt.plot(data[0], data[1], 'bo-')
+                save_pth = os.path.join('./image_based_recognition/bezier_imgs/', str(idx+1) + '.jpg')
+                plt.savefig(save_pth)
+                plt.close()
+                im = Image.open(save_pth).resize((28, 28))
+                im = im.convert('L')
+
+                im_data = np.array(im)
+                im_data = 255 - im_data
+                im_data = torch.from_numpy(im_data).float()
+                im_data = im_data.view(1, 1, 28, 28)
+                out = self.imageModel(im_data)
+                # print(out)
+                # print(type(out))
+                _, pred = torch.max(out, 1)
+                # 62-dimensional features
+                features = out.detach().numpy()
+                min = features.min()
+                # print(min)
+                features -= min
+                final_result.append(features)
+        return np.array(final_result)
+                # print('predict: {}'.format(chr(int(dict_tmp[int(pred)]))))
     #2021-10-24 16:01
