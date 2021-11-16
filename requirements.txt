@@ -1,3 +1,9 @@
 flask
 mediapipe
 opencv-python
+keras
+tensorflow
+pytorch
+scikit-learn
+pandas
+numpy
