@@ -206,6 +206,7 @@ class Gesture(object):
                 self.text = 1
                 self.rec = 0
                 self.trajectory = []
+                self.final = ''
 
         if self.text == 1:
             self.mode = 1
