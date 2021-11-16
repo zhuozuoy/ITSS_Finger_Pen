@@ -20,5 +20,5 @@ Notes: <br>
     Only the words write in the region (Deep Blue Color) will be recognized. <br>
     Hold your gesture "Three" for a while to make sure you really want to save your writing and clear screen. <br>
 ## PROJECT REPORT / PAPER
-Refer to project report at Github Folder: [ProjectReport](https://github.com/zhuozuoy/ITSS_Finger_Pen/report/Graduate_Certificate_Intelligent_Sensing_Systems_Practice_Module_Report_Group7.pdf)
+Refer to project report at Github Folder: [ProjectReport](https://github.com/zhuozuoy/ITSS_Finger_Pen/blob/main/report/Graduate_Certificate_Intelligent_Sensing_Systems_Practice_Module_Report_Group7.pdf)
 
