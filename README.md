@@ -21,4 +21,11 @@ Notes: <br>
     Hold your gesture "Three" for a while to make sure you really want to save your writing and clear screen. <br>
 ## PROJECT REPORT / PAPER
 Refer to project report at Github Folder: [ProjectReport](https://github.com/zhuozuoy/ITSS_Finger_Pen/blob/main/report/Graduate_Certificate_Intelligent_Sensing_Systems_Practice_Module_Report_Group7.pdf)
+## DataSet
+The project is developed based on the following datasets:
 
+Browns:https://www.kaggle.com/nltkdata/brown-corpus
+
+Char74k trajectory:http://www.ee.surrey.ac.uk/CVSSP/demos/chars74k/ (This is the download link :http://www.ee.surrey.ac.uk/CVSSP/demos/chars74k/EnglishHnd.tgz)
+
+EMNIST:https://drive.google.com/drive/folders/1xPqJJ8e2gfTJXveT6se_PanH_TQ3UW4H?usp=sharing
