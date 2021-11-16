@@ -4,6 +4,13 @@ from traj_model import *
 from trajectoryDataset import trajectoryData
 from utils import *
 from correction_func import *
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, classification_report, confusion_matrix
+
+def model_evalute(prediction,y_test):
+    print('Accuracy:', accuracy_score(y_test, prediction))
+    print('F1 score:', f1_score(y_test, prediction, average='macro'))
+    print('Recall:', recall_score(y_test, prediction, average='macro'))
+    print('Precision:', precision_score(y_test, prediction, average='macro'))
 
 if __name__ == '__main__':
 
@@ -66,3 +73,5 @@ if __name__ == '__main__':
     word_correction = word_correction(best_word,predictions)
     print(word_correction)
     # plot_confuse(model, val_set_fea, val_set_label, labels_cate)
+
+

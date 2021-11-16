@@ -3,6 +3,11 @@ import mediapipe as mp
 import math
 import numpy as np
 import inspect, re
+from trajectoryDataset import trajectoryData
+from traj_model import simpleLSTM
+from correction_func import *
+from tensorflow.keras.models import Model
+from image_based_recognition.img_predict import *
 
 class Gesture(object):
     def __init__(self):
@@ -27,15 +32,22 @@ class Gesture(object):
 
         # variable
         self.gesture_str = 'None'       # Gesture recognition result
-        self.rectangle_on = 0           # control rectangle show up
-        self.rectangle_off = 0          # control rectangle show off
+        self.rectangle_on = 0           # control rectangle show up if > 40 show rectangle
+        self.rectangle_off = 0          # control rectangle show off if > 80 hide rectangle
         self.clear = 0                  # clear all writing
         self.save = 0                   # save all writing
         self.center = []                # handwriting center
         self.eraser = []                # eraser center
 
-        self.end = 0                    #end writing
-        self.rec = 0                    #show recognition
+        self.end = 0  # end writing
+        self.rec = 0  # start recognition
+        self.text = 0  # show recognition result
+
+        self.mode = 0                   # mode choose. 0 writing 1 select from corrected options
+        self.predict = ''
+        self.fst_rst = ''
+        self.scd_rst = ''
+        self.final = ''
 
         # self.breakpoint = []
         # self.breakdot = (1,1)
@@ -46,6 +58,16 @@ class Gesture(object):
         self.trajectory3 = []
         self.trajectory4 = []
         self.trajectory5 = []
+
+        self.trajDataset =  trajectoryData(digit=False)
+        model_path = './traj_model_checkpoints'
+
+        self.trajModel = simpleLSTM(62, input_shape=(self.trajDataset.len_95,2))
+        self.trajModel.load_weights(os.path.join(model_path, 'model_diff.h5'))
+
+        ckpt = torch.load(f'./image_based_recognition/ckpt/CNN_model_0.pkl', map_location=torch.device('cuda'))
+        self.imageModel = SimpleCNN(62)
+        self.imageModel.load_state_dict(ckpt)
 
     def __del__(self):
         self.video.release()
@@ -161,7 +183,11 @@ class Gesture(object):
         if self.rectangle_on > 40:
             self.end = 1
             self.rectangle_show(frame)
-            self.rec = 0
+            self.rec = 1
+            self.text = 0
+            self.mode = 0
+            self.final = ''
+
 
         if self.gesture_str == 'Five':
             self.rectangle_off += 1
@@ -170,10 +196,20 @@ class Gesture(object):
             self.rectangle_on = 0
             self.rectangle_off = 0
             self.end = 0
-            self.rec = 1
 
-        if self.rec == 1:
-            # recognition result
+            if self.rec == 1:
+                # recognition result
+                if len(self.trajectory) == 0:
+                    print('Do not have any trajectory to predict')
+                    return
+                self.predict, self.fst_rst, self.scd_rst = self.predict_correct(self.trajectory)
+                self.text = 1
+                self.rec = 0
+                self.trajectory = []
+                self.final = ''
+
+        if self.text == 1:
+            self.mode = 1
             self.recognition(frame)
 
     def rectangle_show(self,frame):
@@ -259,7 +295,7 @@ class Gesture(object):
         self.trajectory2 = []
         self.trajectory3 = []
         self.trajectory4 = []
-        self.trajectory5 = []
+        # self.trajectory5 = []
 
         self.Trajectory_save(self.trajectory)
 
@@ -287,11 +323,35 @@ class Gesture(object):
         #     cv2.imwrite(recg_addr, recognition)
         #
         #     i = i+1
-        print(len(self.trajectory))
         np.save("trajectory.npy", self.trajectory)
 
     def recognition(self,frame):
-        cv2.putText(frame,'Here is the recognition result',(100,650),0,2,(0,255,0),3)
+        predict = 'Recognition result:  ' + self.predict
+        first = '1  ' + self.scd_rst[0][0]
+        second = '2  ' + self.scd_rst[1][0]
+        third = '3  ' + self.scd_rst[2][0]
+        cv2.putText(frame, predict, (100, 200), 0, 2, (0, 255, 0), 3)
+        if self.mode == 1:
+            cv2.putText(frame, predict, (100,200), 0, 2, (0, 255, 0), 3)
+            cv2.putText(frame, 'You may want to write:', (100, 300), 0, 2, (255, 255, 0), 3)
+            cv2.putText(frame, first, (100, 400), 0, 2, (255, 255, 0), 3)
+            cv2.putText(frame, second, (100, 500), 0, 2, (255, 255, 0), 3)
+            cv2.putText(frame, third, (100, 600), 0, 2, (255, 255, 0), 3)
+
+            if self.gesture_str == 'One':
+                self.final = self.scd_rst[0][0]
+            if self.gesture_str == 'Two':
+                self.final = self.scd_rst[1][0]
+            if self.gesture_str == 'Three':
+                self.final = self.scd_rst[2][0]
+            if self.gesture_str == 'Thumb up':
+                self.final = self.predict
+
+            final = 'Final result:  ' + self.final
+            cv2.putText(frame, final, (100, 700), 0, 2, (0, 255, 0), 3)
+
+    def correction(self, frame, predict):
+        pass
 
     def get_frame(self):
         success, image = self.video.read()
@@ -333,7 +393,7 @@ class Gesture(object):
                     if self.end != 0:
                         cv2.putText(frame,gesture_text,(100,100),0,2,(0,0,255),3)
 
-                        if self.gesture_str == 'One' or self.gesture_str == "L":
+                        if (self.mode == 0) and self.gesture_str == 'One':
                             self.clear = 0
                             self.save = 0
                             self.center.append((center_x,center_y))
@@ -344,7 +404,7 @@ class Gesture(object):
 
 
 
-                        if self.gesture_str == 'Two':
+                        if self.mode == 0 and self.gesture_str == 'Two':
                             self.eraser.append((eraser_x,eraser_y))
                             length = 20
                             cv2.rectangle(frame, (eraser_x-length, eraser_y-length), (eraser_x+length, eraser_y+length), (0,0,255), -1)
@@ -366,7 +426,7 @@ class Gesture(object):
         self.rectangle_logic(frame)
 
         # Clear all handwriting
-        if self.gesture_str == 'Three':
+        if self.mode == 0 and self.gesture_str == 'Three':
             self.clear += 1
         if self.clear > 80:
             memory = self.center
@@ -375,7 +435,7 @@ class Gesture(object):
             self.eraser = []
             self.clear = 0
 
-        if self.gesture_str == 'Thumb up':
+        if self.mode ==0 and self.gesture_str == 'Thumb up':
             self.save += 1
         if self.save > 80:
             self.Trajectory_get()
@@ -387,3 +447,99 @@ class Gesture(object):
         ret, jpeg = cv2.imencode('.jpg', frame)
 
         return jpeg.tobytes(), self.gesture_str
+
+
+    def predict_correct(self,traj_list,target_str='air',lambda_a=1,lambda_b=1):
+
+        traj_predictions = self.pred_trajatory(traj_list)
+        image_predictions = self.pred_image(traj_list)
+        image_predictions = np.reshape(image_predictions,(image_predictions.shape[0],image_predictions.shape[-1]))
+        image_predictions = max_min_normalization(image_predictions)
+        predictions = lambda_a*traj_predictions+lambda_b*image_predictions
+        pred = predictions.argmax(axis=-1)
+
+        labels_cate = [str(i) for i in range(10)] + [chr(i) for i in range(65, 91)] + [chr(i) for i in range(97, 123)]
+        label2id = dict(zip(labels_cate, [i for i in range(len(labels_cate))]))
+        id2label = dict(zip([i for i in range(len(labels_cate))], labels_cate))
+
+        predict_result = ''.join([id2label[i] for i in pred])
+        print(predict_result)
+        print([i[j] for i, j in zip(predictions, predictions.argmax(axis=-1))])
+
+        true = [label2id[i] for i in target_str]
+        print(true)
+        print([i[j] for i, j in zip(predictions, true)])
+
+        first_corr_result = correction_result(predictions, lambda_a=20)
+        print(first_corr_result)
+        best_word = first_corr_result[0][0]
+        second_corr_result = word_correction(best_word, predictions)
+        print(second_corr_result)
+
+        return predict_result,first_corr_result,second_corr_result
+
+
+    def pred_trajatory(self,traj_list):
+        traj_list = [[list(e)[::-1] for e in f] for f in traj_list]
+        print(traj_list)
+        feature = [self.trajDataset.preprocess(i, standardization=True) for i in traj_list]
+        feature = np.array([self.trajDataset.moving_ave(i, window_size=5) for i in feature])
+        feature = np.array(feature)
+
+        dense_layer_model = Model(inputs=self.trajModel.input,outputs=self.trajModel.get_layer('Dense_output').output)
+
+        predictions = dense_layer_model.predict(feature)
+        predictions = predictions + abs(np.min(predictions, axis=1, keepdims=True))
+
+        predictions = predictions / np.sum(predictions, axis=1, keepdims=True)
+        return predictions
+
+
+    def pred_image(self,trajList):
+        with torch.no_grad():
+            self.imageModel.eval()
+            # load mapping txt
+            # dict_tmp = load_mapping_file('./mappings/emnist-byclass-mapping.txt')
+
+            # load the trajectory-based test sets and model file
+            # traj_dir = "../testData"
+            # trajList = []
+            # for files in os.listdir(traj_dir):
+            #     if os.path.splitext(files)[1] == '.txt':
+            #         trajList.append(files)
+            final_result = []
+            # trajList = os.listdir(traj_dir)
+            # trajList.sort(key=lambda x: int(x.replace("trajectory", "").split('.')[0]))
+            for idx in range(0, len(trajList)):
+                # print(os.path.join(traj_dir, trajList[idx]))
+                x, y= zip(*trajList[idx])
+                t = np.linspace(0.0, 1.0, 25)
+                plt.figure(figsize=(1, 1))
+                data = gen_bezuer(x, y, t)
+                ax = plt.gca()
+                ax.invert_yaxis()
+                plt.axis('off')
+                im = plt.plot(data[0], data[1], 'bo-')
+                save_pth = os.path.join('./image_based_recognition/bezier_imgs/', str(idx+1) + '.jpg')
+                plt.savefig(save_pth)
+                plt.close()
+                im = Image.open(save_pth).resize((28, 28))
+                im = im.convert('L')
+
+                im_data = np.array(im)
+                im_data = 255 - im_data
+                im_data = torch.from_numpy(im_data).float()
+                im_data = im_data.view(1, 1, 28, 28)
+                out = self.imageModel(im_data)
+                # print(out)
+                # print(type(out))
+                _, pred = torch.max(out, 1)
+                # 62-dimensional features
+                features = out.detach().numpy()
+                min = features.min()
+                # print(min)
+                features -= min
+                final_result.append(features)
+        return np.array(final_result)
+                # print('predict: {}'.format(chr(int(dict_tmp[int(pred)]))))
+    #2021-10-24 16:01
